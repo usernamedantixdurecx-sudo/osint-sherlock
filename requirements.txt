@@ -1,0 +1,77 @@
+import requests
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+
+SITES = {
+    "GitHub": "https://github.com/{}",
+    "Reddit": "https://www.reddit.com/user/{}",
+    "TikTok": "https://www.tiktok.com/@{}",
+    "Instagram": "https://www.instagram.com/{}",
+    "Twitter/X": "https://twitter.com/{}",
+    "Pinterest": "https://www.pinterest.com/{}/",
+    "Steam": "https://steamcommunity.com/id/{}",
+    "GitLab": "https://gitlab.com/{}",
+    "Twitch": "https://www.twitch.tv/{}",
+    "DeviantArt": "https://www.deviantart.com/{}",
+    "Medium": "https://medium.com/@{}",
+    "SoundCloud": "https://soundcloud.com/{}",
+    "YouTube": "https://www.youtube.com/@{}",
+    "VK": "https://vk.com/{}",
+    "OK.ru": "https://ok.ru/{}",
+    "Roblox": "https://www.roblox.com/users/profile?username={}",
+    "Pastebin": "https://pastebin.com/u/{}",
+    "Blogger": "https://{}.blogspot.com",
+    "Flickr": "https://www.flickr.com/people/{}",
+    "Replit": "https://replit.com/@{}"
+}
+
+HEADERS = {"User-Agent": "Mozilla/5.0"}
+
+def check(site, url):
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=10, allow_redirects=True)
+        if r.status_code == 200:
+            return (site, url, True)
+    except:
+        pass
+    return (site, url, False)
+
+def search(username):
+    results = []
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = [
+            executor.submit(check, site, url.format(username))
+            for site, url in SITES.items()
+        ]
+        for f in futures:
+            results.append(f.result())
+    return results
+
+def save(results, username):
+    filename = "result.txt"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(f"OSINT REPORT\nUsername: {username}\nTime: {datetime.now()}\n\n")
+        for site, url, exists in results:
+            if exists:
+                f.write(f"[+] {site}: {url}\n")
+    return filename
+
+def main():
+    print("OSINT Sherlock Clone")
+    username = input("Username: ").strip()
+
+    results = search(username)
+
+    found = 0
+    for site, url, exists in results:
+        if exists:
+            print(f"[+] {site}: {url}")
+            found += 1
+
+    if found == 0:
+        print("No results")
+
+    print("Saved:", save(results, username))
+
+if __name__ == "__main__":
+    main()
